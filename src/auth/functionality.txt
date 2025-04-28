@@ -1,0 +1,8 @@
+We want the users to:
+
+1. Register
+2. Login
+3. Stay logged in via HttpOnly cookies
+4. Fetch their profile (/auth/me)
+5. Logout - delete the cookies
+6. Protect the routes via guards

@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/*
+  1. Many to many relationship between: Post and Tag using the PostTags relation.
+  2. one to many relationship between: from user to post and comment (one user can have many posts and comments)
+  3. many to many relationship between: post and user throught like
+*/
+
+
+
+enum Role {
+  USER
+  ADMIN
+}
+
+/*
+
+  The User model represents application users.
+
+- **Relationships:**
+  - **One-to-Many with Post**: A user can create multiple posts (`posts` field)
+  - **One-to-Many with Comment**: A user can create multiple comments (`comments` field)
+  - **One-to-Many with Like**: A user can like multiple posts (`likes` field)
+
+*/
+model User {
+  id Int @id @default(autoincrement())
+  email String @unique
+  password String
+  name String
+  role Role @default(USER)
+  posts Post[]
+  comments Comment[]
+  likes Like[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/*
+
+  The Post model represents blog posts or content entries.
+
+- **Relationships:**
+  - **Many-to-One with User**: Each post belongs to a single user (`user` field)
+  - **One-to-Many with Comment**: A post can have multiple comments (`comments` field)
+  - **One-to-Many with Like**: A post can have multiple likes (`likes` field)
+  - **Many-to-Many with Tag**: A post can have multiple tags, and tags can be applied to multiple posts (`tags` field using the "PostTags" relation)
+
+*/
+model Post {
+  id Int @id @default(autoincrement())
+  title String
+  content String
+  published Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId Int 
+  user User @relation(fields: [userId], references: [id])
+  comments Comment[]
+  likes Like[]
+  tags Tag[] @relation("PostTags")
+}
+
+/*
+
+  The Comment model represents user comments on posts.
+
+- **Relationships:**
+  - **Many-to-One with Post**: Each comment belongs to a single post (`post` field)
+  - **Many-to-One with User**: Each comment is created by a single user (`user` field)
+
+*/
+model Comment {
+  id Int @id @default(autoincrement())
+  content String
+  createdAt DateTime @default(now())
+  postId Int
+  post Post @relation(fields: [postId], references: [id])
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+/*
+
+  The Like model represents a user liking a post.
+
+- **Relationships:**
+  - **Many-to-One with Post**: Each like is associated with a single post (`post` field)
+  - **Many-to-One with User**: Each like is created by a single user (`user` field)
+
+*/
+model Like {
+  id Int @id @default(autoincrement())
+  postId Int
+  post Post @relation(fields: [postId], references: [id])
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+/*
+
+  The Tag model represents categories or labels that can be applied to posts.
+
+- **Relationships:**
+  - **Many-to-Many with Post**: A tag can be applied to multiple posts, and posts can have multiple tags (`posts` field using the "PostTags" relation) 
+
+*/
+model Tag {
+  id Int @id @default(autoincrement())
+  name String @unique
+  posts Post[] @relation("PostTags")
+}
