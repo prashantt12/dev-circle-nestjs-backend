@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, Req, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, Res, Req, UseGuards, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { Response, Request } from 'express';
@@ -39,4 +39,5 @@ export class AuthController {
             email: user.email,
         }
     }
+
 }
