@@ -92,6 +92,11 @@ model Comment {
   post Post @relation(fields: [postId], references: [id])
   userId Int
   user User @relation(fields: [userId], references: [id])
+
+  // self referencing relation tfor threaded replies
+  parentId Int?   //this is a nullable field, if the parentId is null then that means that the comment is a top level comment.
+  parent Comment? @relation("CommentToReplies", fields: [parentId], references: [id])   //
+  replies Comment[] @relation("CommentToReplies")
 }
 
 

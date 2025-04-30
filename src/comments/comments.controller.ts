@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -18,6 +18,11 @@ export class CommentsController {
   @UseGuards(AuthGuard)
   async deleteComment(@Param('id', ParseIntPipe) commentId: number, @Req() req: Request & { user: User}) {
     return this.commentsService.deleteComment(commentId, req.user.id)
+  }
+
+  @Get('/post/:id')
+  async getCommentsByPost(@Param('id', ParseIntPipe) postId: number) {
+    return this.commentsService.getCommentsByPost(postId);
   }
 
 }

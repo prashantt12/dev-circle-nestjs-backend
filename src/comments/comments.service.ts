@@ -19,20 +19,36 @@ export class CommentsService {
             where: {
                 id: postId
             },
-            select: {
-                id: true,
-            }
+            // select: {
+            //     id: true,
+            // }
         });
 
         if (!post) throw new NotFoundException('Post not found');
+
+        // if it a reply to another comment, check if the parent comment exists
+        if (createCommentDto.parentId) {
+            const parentComment  = await this.prisma.comment.findUnique({
+                where: {
+                    id: createCommentDto.parentId
+                }
+            })
+
+            if (!parentComment) throw new NotFoundException('Parent comment not found');
+        }
         
-        return this.prisma.comment.create({
+        const comment = await this.prisma.comment.create({
             data: {
                 content: createCommentDto.content,
                 postId,
                 userId,
+                parentId: createCommentDto.parentId ?? null
             }
         })
+
+        const {createdAt: _ , ...commentWithoutTimestamp} = comment;
+
+        return commentWithoutTimestamp;
     }
 
     /**
@@ -87,5 +103,55 @@ export class CommentsService {
                 id: commentId,
             }
         })
+    }
+
+    async getCommentsByPost(postId: number) {
+
+        const topLevelComment = await this.prisma.comment.findMany({
+            where: {
+                postId,
+                parentId: null,
+            },
+            orderBy: {
+                createdAt: 'asc',
+            }
+        });
+
+        // Fetch replies recursively
+        const fetchReplies= await Promise.all(
+            topLevelComment.map(async (comment) => {
+                const replies = await this.getReplies(comment.id);
+                return {
+                    ...comment,
+                    replies,
+                }
+            })
+        )
+
+        return fetchReplies;
+    }
+
+    // helper recursive function to fetch replies
+    private async getReplies(commentId: number): Promise<any[]> {
+        const replies = await this.prisma.comment.findMany({
+            where: {
+                parentId: commentId,
+            },
+            orderBy: {
+                createdAt: 'asc',
+            }
+        });
+
+        // recursive call for each reply
+        return Promise.all(
+            replies.map(async (reply) => {
+                const nested = await this.getReplies(reply.id);
+                return {
+                    ...reply,
+                    replies: nested,
+                }
+            })
+        );
+        
     }
 }
