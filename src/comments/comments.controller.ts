@@ -4,15 +4,6 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { User } from 'generated/prisma';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
-
-interface RawCommentBody {
-  content: string;
-  parentId?: number;
-}
 
 @Controller('comments')
 export class CommentsController {
@@ -23,8 +14,9 @@ export class CommentsController {
   @UseInterceptors(
     FileInterceptor('attatchment')
   )
-  async createComment(@Param('id', ParseIntPipe) postId: number, @Body() body: RawCommentBody, @Req() req: Request & { user: User }, @UploadedFile() file: Express.Multer.File) {
-    return this.commentsService.createComment(postId, req.user.id, body, file)
+  async createComment(@Param('id') postId: string, @Body() body: CreateCommentDto, @Req() req: Request & { user: User }, @UploadedFile() file: Express.Multer.File) {
+    console.log(body);
+    return await this.commentsService.createComment(parseInt(postId), req.user.id, body, file)
   }
 
   @Delete(':id')

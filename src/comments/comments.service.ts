@@ -42,6 +42,7 @@ export class CommentsService {
         }
 
         let commentContent = content;
+        let attatchmentId: number | null = null;
 
         if (file) {
             const documentsPath = path.join(
@@ -57,7 +58,15 @@ export class CommentsService {
             const fileName = `${Date.now()}-${file.originalname}`;
             const filePath = path.join(documentsPath, fileName);
 
-            fs.writeFileSync(filePath, file.buffer);
+            if (!file.buffer) {
+                throw new Error('File buffer is undefined. Make sure the file upload is properly configured.');
+            }
+
+            try {
+                fs.writeFileSync(filePath, file.buffer);
+            } catch (error) {
+                throw new Error(`Failed to write file: ${error.message}`);
+            }
 
             const attachment = await this.prisma.attatchment.create({
                 data: {
@@ -66,7 +75,7 @@ export class CommentsService {
                     postId,
                 }
             });
-
+            attatchmentId = attachment.id;
             commentContent = String(`${attachment.id} is the attachment id`);
         }
         
@@ -79,8 +88,18 @@ export class CommentsService {
             }
         })
 
-        const {createdAt: _ , ...commentWithoutTimestamp} = comment;
+        if (attatchmentId) {
+            await this.prisma.attatchment.update({
+                where: {
+                    id: attatchmentId,
+                },
+                data: {
+                    commentId: comment.id,
+                }
+            })
+        }
 
+        const {createdAt: _ , ...commentWithoutTimestamp} = comment;
         return commentWithoutTimestamp;
     }
 
