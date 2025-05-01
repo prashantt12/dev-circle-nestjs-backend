@@ -1,7 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-
+import * as path from 'path';
+import * as fs from 'fs';
 @Injectable()
 export class CommentsService {
     constructor(private readonly prisma: PrismaService) {}
@@ -13,8 +14,11 @@ export class CommentsService {
      * @param createCommentDto - The comment data transfer object containing the content
      * @returns The created comment record
      */
-    async createComment(postId: number, userId: number, createCommentDto: CreateCommentDto) {
-        
+    async createComment(postId: number, userId: number, createCommentDto: CreateCommentDto, file: Express.Multer.File) {
+
+        const content= createCommentDto.content;
+        const parentId = createCommentDto.parentId;
+
         const post = await this.prisma.post.findUnique({
             where: {
                 id: postId
@@ -27,22 +31,51 @@ export class CommentsService {
         if (!post) throw new NotFoundException('Post not found');
 
         // if it a reply to another comment, check if the parent comment exists
-        if (createCommentDto.parentId) {
+        if (parentId) {
             const parentComment  = await this.prisma.comment.findUnique({
                 where: {
-                    id: createCommentDto.parentId
+                    id: parentId,
                 }
             })
 
             if (!parentComment) throw new NotFoundException('Parent comment not found');
         }
+
+        let commentContent = content;
+
+        if (file) {
+            const documentsPath = path.join(
+                process.cwd(),
+                'Documents',
+                'Attachments'
+            );
+
+            if(!fs.existsSync(documentsPath)) {
+                fs.mkdirSync(documentsPath, {recursive: true});
+            }
+
+            const fileName = `${Date.now()}-${file.originalname}`;
+            const filePath = path.join(documentsPath, fileName);
+
+            fs.writeFileSync(filePath, file.buffer);
+
+            const attachment = await this.prisma.attatchment.create({
+                data: {
+                    directory: filePath,
+                    userId,
+                    postId,
+                }
+            });
+
+            commentContent = String(`${attachment.id} is the attachment id`);
+        }
         
         const comment = await this.prisma.comment.create({
             data: {
-                content: createCommentDto.content,
+                content: commentContent,
                 postId,
                 userId,
-                parentId: createCommentDto.parentId ?? null
+                parentId: parentId ?? null
             }
         })
 
@@ -105,7 +138,33 @@ export class CommentsService {
         })
     }
 
-    async getCommentsByPost(postId: number) {
+    // get only the top level comments for a post
+    async getAllTopLevelComments(postId: number) {
+        const post = await this.prisma.post.findUnique({
+            where: {
+                id: postId
+            }
+        });
+
+        if (!post) throw new NotFoundException('Post not found');
+
+        const topLevelComments = await this.prisma.comment.findMany({
+            where: {
+                postId,
+                parentId: null,
+            },
+            orderBy: {
+                createdAt: 'asc',
+            }
+        })
+
+        const commentsWithoutTimestamp = topLevelComments.map(({ createdAt, ...comment }) => comment);
+
+        return commentsWithoutTimestamp;
+    }
+
+
+    async getCommentsAndRepliesByPost(postId: number) {
 
         const topLevelComment = await this.prisma.comment.findMany({
             where: {
@@ -154,4 +213,14 @@ export class CommentsService {
         );
         
     }
+
+    // test function to handle file upload
+    async testUploadFile(file: Express.Multer.File) {
+        console.log(file);
+        return {
+            message: 'File uploaded successfully',
+            file: file.filename,
+        }
+    }
+  
 }

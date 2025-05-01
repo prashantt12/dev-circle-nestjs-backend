@@ -3,11 +3,14 @@ import { CommentsService } from './comments.service';
 import { CommentsController } from './comments.controller';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthModule } from 'src/auth/auth.module';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   controllers: [CommentsController],
   providers: [CommentsService, PrismaService],
   exports: [CommentsService],
-  imports: [AuthModule],
+  imports: [AuthModule, MulterModule.register({
+    dest: './uploads',
+  })],
 })
 export class CommentsModule {}

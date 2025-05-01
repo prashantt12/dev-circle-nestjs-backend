@@ -14,29 +14,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/*
-  1. Many to many relationship between: Post and Tag using the PostTags relation.
-  2. one to many relationship between: from user to post and comment (one user can have many posts and comments)
-  3. many to many relationship between: post and user throught like
-*/
-
-
-
 enum Role {
   USER
   ADMIN
 }
 
-/*
-
-  The User model represents application users.
-
-- **Relationships:**
-  - **One-to-Many with Post**: A user can create multiple posts (`posts` field)
-  - **One-to-Many with Comment**: A user can create multiple comments (`comments` field)
-  - **One-to-Many with Like**: A user can like multiple posts (`likes` field)
-
-*/
 model User {
   id Int @id @default(autoincrement())
   email String @unique
@@ -48,19 +30,9 @@ model User {
   likes Like[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  attachments Attatchment[]
 }
 
-/*
-
-  The Post model represents blog posts or content entries.
-
-- **Relationships:**
-  - **Many-to-One with User**: Each post belongs to a single user (`user` field)
-  - **One-to-Many with Comment**: A post can have multiple comments (`comments` field)
-  - **One-to-Many with Like**: A post can have multiple likes (`likes` field)
-  - **Many-to-Many with Tag**: A post can have multiple tags, and tags can be applied to multiple posts (`tags` field using the "PostTags" relation)
-
-*/
 model Post {
   id Int @id @default(autoincrement())
   title String
@@ -73,17 +45,9 @@ model Post {
   comments Comment[]
   likes Like[]
   tags Tag[] @relation("PostTags")
+  attachments Attatchment[]
 }
 
-/*
-
-  The Comment model represents user comments on posts.
-
-- **Relationships:**
-  - **Many-to-One with Post**: Each comment belongs to a single post (`post` field)
-  - **Many-to-One with User**: Each comment is created by a single user (`user` field)
-
-*/
 model Comment {
   id Int @id @default(autoincrement())
   content String
@@ -97,18 +61,10 @@ model Comment {
   parentId Int?   //this is a nullable field, if the parentId is null then that means that the comment is a top level comment.
   parent Comment? @relation("CommentToReplies", fields: [parentId], references: [id])   //
   replies Comment[] @relation("CommentToReplies")
+
+  attachments Attatchment[]
 }
 
-
-/*
-
-  The Like model represents a user liking a post.
-
-- **Relationships:**
-  - **Many-to-One with Post**: Each like is associated with a single post (`post` field)
-  - **Many-to-One with User**: Each like is created by a single user (`user` field)
-
-*/
 model Like {
   id Int @id @default(autoincrement())
   postId Int
@@ -117,17 +73,23 @@ model Like {
   user User @relation(fields: [userId], references: [id])
 }
 
-
-/*
-
-  The Tag model represents categories or labels that can be applied to posts.
-
-- **Relationships:**
-  - **Many-to-Many with Post**: A tag can be applied to multiple posts, and posts can have multiple tags (`posts` field using the "PostTags" relation) 
-
-*/
 model Tag {
   id Int @id @default(autoincrement())
   name String @unique
   posts Post[] @relation("PostTags")
+}
+
+// add a new Attatchment schema to share files as comments to post  or as replty to a comment
+
+model Attatchment {
+  id Int @id @default(autoincrement())
+  directory String
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  postId Int?
+  post Post? @relation(fields: [postId], references: [id])
+  commentId Int?
+  comment Comment? @relation(fields: [commentId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
