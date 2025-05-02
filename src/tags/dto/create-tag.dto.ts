@@ -1,7 +1,7 @@
 import { z } from "zod";
-
-export const createTagDto = z.object({
+import { createZodDto } from "nestjs-zod";
+export const createTagDto = z.object({  
     name: z.string().min(1),
 });
 
-export type CreateTagDto = z.infer<typeof createTagDto>;
+export class CreateTagDto extends createZodDto(createTagDto) {}

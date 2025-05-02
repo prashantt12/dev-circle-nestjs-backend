@@ -1,4 +1,4 @@
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { ZodValidationPipe } from 'nestjs-zod';
