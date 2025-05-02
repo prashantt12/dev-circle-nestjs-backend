@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, StreamableFile } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import * as path from 'path';
@@ -233,13 +233,15 @@ export class CommentsService {
         
     }
 
-    // test function to handle file upload
-    async testUploadFile(file: Express.Multer.File) {
-        console.log(file);
-        return {
-            message: 'File uploaded successfully',
-            file: file.filename,
-        }
+    //function to get the attatchment
+    async getAttatchment(attatchmentId: number) {
+        const attatchment = await this.prisma.attatchment.findUnique({
+            where: {
+                id: attatchmentId,
+            }
+        })
+
+        if (!attatchment) throw new NotFoundException('Attatchment not found');
+        return attatchment;
     }
-  
 }
